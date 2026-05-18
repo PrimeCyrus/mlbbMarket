@@ -19,7 +19,7 @@ export default function Page() {
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
 
-  const { user, profile } = useAuth()
+  const { user, profile, signIn } = useAuth()
   const [applyOpen, setApplyOpen] = useState(false)
 
   // search and filter
@@ -183,7 +183,7 @@ export default function Page() {
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-                {canPost && (
+                {canPost ? (
                   <Button
                     asChild
                     size="lg"
@@ -193,6 +193,15 @@ export default function Page() {
                       <Plus className="mr-2 h-5 w-5" />
                       Post a Listing
                     </Link>
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={signIn}
+                    size="lg"
+                    className="bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-emerald-500 text-white hover:from-cyan-600 hover:via-fuchsia-600 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
+                  >
+                    <Plus className="mr-2 h-5 w-5" />
+                    Sign in to Post Listing
                   </Button>
                 )}
                 {canApply && supabaseEnabled && (
