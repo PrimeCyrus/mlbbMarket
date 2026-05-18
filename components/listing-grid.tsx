@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import ListingCard from "@/components/listing-card"
 import type { Listing } from "@/types/listing"
-import { ensureFirebaseApp, firebaseEnabled } from "@/lib/firebase"
-import { doc, getDoc, getFirestore } from "firebase/firestore"
+import { supabase } from "@/lib/supabase"
 
 type Props = {
   listings: Listing[]
@@ -23,37 +23,25 @@ export default function ListingGrid({ listings, loading = false }: Props) {
   const ids = useMemo(() => Array.from(new Set(listings.map((l) => l.userId).filter(Boolean))), [listings])
 
   useEffect(() => {
-    if (!firebaseEnabled || ids.length === 0) {
-      // Demo data for non-Firebase mode
-      const demoSellers: Record<string, SellerInfo> = {}
-      ids.forEach((id) => {
-        demoSellers[id] = {
-          fullName: "Demo Seller",
-          photoURL: "",
-          sellerStatus: "approved",
-        }
-      })
-      setSellers(demoSellers)
+    if (ids.length === 0) {
       return
     }
 
     let cancelled = false
     const run = async () => {
-      const db = getFirestore(ensureFirebaseApp())
+      const { data } = await supabase.from('users').select('uid, full_name, photo_url, seller_status').in('uid', ids)
+
       const out: Record<string, SellerInfo> = {}
-      for (const id of ids) {
-        try {
-          const snap = await getDoc(doc(db, "users", id))
-          const data = snap.data() as any
-          out[id] = {
-            fullName: data?.fullName || data?.displayName || data?.email || "Seller",
-            photoURL: data?.photoURL || "",
-            sellerStatus: data?.sellerStatus || "not_applied",
+      if (data) {
+        data.forEach((user: any) => {
+          out[user.uid] = {
+            fullName: user.full_name || "Seller",
+            photoURL: user.photo_url || "",
+            sellerStatus: user.seller_status || "not_applied",
           }
-        } catch {
-          // ignore and leave default
-        }
+        })
       }
+
       if (!cancelled) setSellers(out)
     }
     run()
@@ -68,16 +56,16 @@ export default function ListingGrid({ listings, loading = false }: Props) {
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
-            className="flex h-full flex-col overflow-hidden rounded-xl border border-neutral-800/50 bg-neutral-900/50"
+            className="flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white"
           >
-            <div className="aspect-[2/3] w-full animate-pulse bg-neutral-800" />
+            <div className="aspect-[2/3] w-full animate-pulse bg-slate-100" />
             <div className="p-4 space-y-3">
-              <div className="h-4 w-3/4 animate-pulse rounded bg-neutral-800" />
-              <div className="h-3 w-full animate-pulse rounded bg-neutral-800" />
-              <div className="h-3 w-2/3 animate-pulse rounded bg-neutral-800" />
+              <div className="h-4 w-3/4 animate-pulse rounded bg-slate-100" />
+              <div className="h-3 w-full animate-pulse rounded bg-slate-100" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-slate-100" />
               <div className="flex items-center gap-2 pt-2">
-                <div className="h-8 w-8 animate-pulse rounded-full bg-neutral-800" />
-                <div className="h-3 w-16 animate-pulse rounded bg-neutral-800" />
+                <div className="h-8 w-8 animate-pulse rounded-full bg-slate-100" />
+                <div className="h-3 w-16 animate-pulse rounded bg-slate-100" />
               </div>
             </div>
           </div>
@@ -88,7 +76,7 @@ export default function ListingGrid({ listings, loading = false }: Props) {
 
   if (!listings.length) {
     return (
-      <div className="grid place-items-center rounded-xl border border-neutral-800 bg-neutral-950/60 p-10 text-sm text-neutral-400">
+      <div className="grid place-items-center rounded-xl border border-slate-200 bg-slate-50 p-10 text-sm text-slate-500 shadow-sm">
         No listings yet. Be the first to post.
       </div>
     )
@@ -113,6 +101,8 @@ export default function ListingGrid({ listings, loading = false }: Props) {
             sellerName={seller.fullName}
             sellerAvatar={seller.photoURL}
             isVerifiedSeller={isVerified}
+            isGirlsId={l.isGirlsId}
+            collectorLevel={l.collectorLevel}
           />
         )
       })}

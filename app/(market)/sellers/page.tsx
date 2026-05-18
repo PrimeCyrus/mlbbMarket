@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { ensureFirebaseApp, firebaseEnabled } from "@/lib/firebase"
-import { collection, getFirestore, onSnapshot, query, where } from "firebase/firestore"
+import { supabase, supabaseEnabled } from "@/lib/supabase"
 import type { UserProfile } from "@/types/user"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -19,23 +18,29 @@ export default function SellersDirectoryPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!firebaseEnabled) {
+    const fetchSellers = async () => {
+      const { data } = await supabase.from('users').select('*').eq('seller_status', 'approved')
+      if (data) {
+        setSellers(data as UserProfile[])
+      }
       setLoading(false)
-      return
     }
-    const app = ensureFirebaseApp()
-    const db = getFirestore(app)
-    const qy = query(collection(db, "users"), where("sellerStatus", "==", "approved"))
-    const unsub = onSnapshot(
-      qy,
-      (snap) => {
-        const arr = snap.docs.map((d) => d.data() as UserProfile)
-        setSellers(arr)
-        setLoading(false)
-      },
-      () => setLoading(false),
-    )
-    return () => unsub()
+
+    fetchSellers()
+
+    const channelName = 'public:users:sellers'
+    const existing = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`)
+    if (existing) supabase.removeChannel(existing)
+
+    const channel = supabase.channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: 'seller_status=eq.approved' }, () => {
+        fetchSellers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const demo = useMemo<UserProfile[]>(
@@ -65,7 +70,7 @@ export default function SellersDirectoryPage() {
     [],
   )
 
-  const data = firebaseEnabled ? sellers : demo
+  const data = supabaseEnabled ? sellers : demo
 
   return (
     <div className="space-y-6">
@@ -93,7 +98,7 @@ export default function SellersDirectoryPage() {
           {data.map((s) => (
             <Link
               key={s.uid}
-              href={firebaseEnabled ? `/seller/${s.uid}` : "#"}
+              href={`/seller/${s.uid}`}
               className="group rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 ring-1 ring-transparent transition hover:ring-cyan-500/30"
             >
               <div className="flex items-center gap-3">

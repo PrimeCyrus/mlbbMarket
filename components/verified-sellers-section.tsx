@@ -5,8 +5,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
-import { ensureFirebaseApp, firebaseEnabled } from "@/lib/firebase"
-import { collection, getFirestore, onSnapshot, query, where } from "firebase/firestore"
+import { supabase, supabaseEnabled } from "@/lib/supabase"
 import type { UserProfile } from "@/types/user"
 import { ChevronRight, Star } from "lucide-react"
 
@@ -21,23 +20,29 @@ export default function VerifiedSellersSection() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!firebaseEnabled) {
+    const fetchSellers = async () => {
+      const { data } = await supabase.from('users').select('*').eq('seller_status', 'approved')
+      if (data) {
+        setSellers(data as UserProfile[])
+      }
       setLoading(false)
-      return
     }
-    const app = ensureFirebaseApp()
-    const db = getFirestore(app)
-    const qy = query(collection(db, "users"), where("sellerStatus", "==", "approved"))
-    const unsub = onSnapshot(
-      qy,
-      (snap) => {
-        const arr = snap.docs.map((d) => d.data() as UserProfile)
-        setSellers(arr)
-        setLoading(false)
-      },
-      () => setLoading(false),
-    )
-    return () => unsub()
+
+    fetchSellers()
+
+    const channelName = 'public:users:verified-section'
+    const existing = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`)
+    if (existing) supabase.removeChannel(existing)
+
+    const channel = supabase.channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: 'seller_status=eq.approved' }, () => {
+        fetchSellers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const demo = useMemo<UserProfile[]>(
@@ -74,7 +79,7 @@ export default function VerifiedSellersSection() {
     [],
   )
 
-  const data = firebaseEnabled ? sellers : demo
+  const data = supabaseEnabled ? sellers : demo
 
   if (loading) {
     return (
@@ -125,7 +130,7 @@ export default function VerifiedSellersSection() {
 
       <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
         {data.slice(0, 6).map((seller) => (
-          <Link key={seller.uid} href={firebaseEnabled ? `/seller/${seller.uid}` : "#"} className="group flex-shrink-0">
+          <Link key={seller.uid} href={`/seller/${seller.uid}`} className="group flex-shrink-0">
             <Card className="w-64 border-neutral-800 bg-neutral-900/50 hover:bg-neutral-900/70 transition-all duration-300 hover:border-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/10">
               <CardContent className="p-6">
                 <div className="flex items-center gap-4">

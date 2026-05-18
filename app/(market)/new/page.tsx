@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import ListingForm from "@/components/listing-form"
 import { useState, useMemo } from "react"
 import LoginDialog from "@/components/login-dialog"
-import { firebaseEnabled } from "@/lib/firebase"
+import { supabaseEnabled } from "@/lib/supabase"
 import SellerApplyDialog from "@/components/seller-apply-dialog"
 
 export default function NewListingPage() {
@@ -21,13 +21,13 @@ export default function NewListingPage() {
     [profile],
   )
 
-  if (!firebaseEnabled) {
+  if (!supabaseEnabled) {
     return (
       <Alert className="border-cyan-500/20 bg-cyan-500/5">
         <TriangleAlert className="h-4 w-4 text-cyan-400" />
-        <AlertTitle className="text-cyan-300">Connect Firebase</AlertTitle>
+        <AlertTitle className="text-cyan-300">Connect Supabase</AlertTitle>
         <AlertDescription className="text-cyan-200/80">
-          Add your Firebase config to enable creating listings and image uploads.
+          Add your Supabase config to enable creating listings and image uploads.
         </AlertDescription>
       </Alert>
     )
@@ -49,7 +49,7 @@ export default function NewListingPage() {
             </Button>
           </CardContent>
         </Card>
-        <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
+        <LoginDialog />
       </>
     )
   }

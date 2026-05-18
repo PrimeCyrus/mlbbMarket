@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ensureFirebaseApp, firebaseEnabled } from "@/lib/firebase"
-import { collection, getFirestore, onSnapshot, query, where } from "firebase/firestore"
+import { supabase, supabaseEnabled } from "@/lib/supabase"
 import type { UserProfile } from "@/types/user"
 
 function initials(name?: string) {
@@ -19,23 +18,29 @@ export default function VerifiedSellersBar() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!firebaseEnabled) {
+    const fetchSellers = async () => {
+      const { data } = await supabase.from('users').select('*').eq('seller_status', 'approved')
+      if (data) {
+        setSellers(data as UserProfile[])
+      }
       setLoading(false)
-      return
     }
-    const app = ensureFirebaseApp()
-    const db = getFirestore(app)
-    const qy = query(collection(db, "users"), where("sellerStatus", "==", "approved"))
-    const unsub = onSnapshot(
-      qy,
-      (snap) => {
-        const arr = snap.docs.map((d) => d.data() as UserProfile)
-        setSellers(arr)
-        setLoading(false)
-      },
-      () => setLoading(false),
-    )
-    return () => unsub()
+
+    fetchSellers()
+
+    const channelName = 'public:users:verified'
+    const existing = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`)
+    if (existing) supabase.removeChannel(existing)
+
+    const channel = supabase.channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: 'seller_status=eq.approved' }, () => {
+        fetchSellers()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   const demo = useMemo<UserProfile[]>(
@@ -58,7 +63,7 @@ export default function VerifiedSellersBar() {
     [],
   )
 
-  const data = firebaseEnabled ? sellers : demo
+  const data = supabaseEnabled ? sellers : demo
 
   if (loading) {
     return (
@@ -92,7 +97,7 @@ export default function VerifiedSellersBar() {
         {data.map((s) => (
           <Link
             key={s.uid}
-            href={firebaseEnabled ? `/seller/${s.uid}` : "#"}
+            href={`/seller/${s.uid}`}
             className="group flex shrink-0 items-center gap-2 rounded-lg border border-neutral-800 bg-neutral-950/60 px-3 py-2 ring-1 ring-transparent transition hover:ring-cyan-500/30"
           >
             <Avatar className="h-6 w-6">

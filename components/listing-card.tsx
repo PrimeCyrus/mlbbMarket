@@ -20,6 +20,8 @@ export type ListingCardProps = {
   sellerName?: string
   sellerAvatar?: string
   isVerifiedSeller?: boolean
+  isGirlsId?: boolean
+  collectorLevel?: string
 }
 
 function initials(name?: string) {
@@ -38,13 +40,15 @@ export default function ListingCard({
   sellerName = "Seller",
   sellerAvatar = "",
   isVerifiedSeller = false,
+  isGirlsId = false,
+  collectorLevel = "",
 }: ListingCardProps) {
   const { avg, count } = useSellerReviewSummary(sellerId)
   const { add, has } = useWishlist()
 
   return (
     <Link href={"/listing/" + id} className="group block h-full">
-      <Card className="h-full overflow-hidden border-neutral-800/50 bg-gradient-to-b from-neutral-900/50 to-neutral-900/80 backdrop-blur-sm transition-all duration-300 hover:border-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
+      <Card className="h-full overflow-hidden border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/10 hover:-translate-y-1">
         <div className="relative aspect-[2/3] w-full overflow-hidden">
           <img
             src={imageUrl || "/placeholder.svg?height=900&width=600&query=mlbb%20portrait"}
@@ -85,7 +89,7 @@ export default function ListingCard({
                 add({ id, title, price, imageUrl, sellerId })
               }}
               disabled={has(id)}
-              className="inline-flex items-center gap-1 rounded-full border border-pink-500/40 bg-neutral-900/80 px-3 py-1.5 text-xs text-pink-200 hover:bg-neutral-800 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-full border border-pink-200 bg-white/90 px-3 py-1.5 text-xs font-medium text-pink-600 hover:bg-pink-50 disabled:opacity-50 shadow-sm backdrop-blur-sm"
             >
               <Heart className="h-3.5 w-3.5" />
               {has(id) ? "In Wishlist" : "Wishlist"}
@@ -98,12 +102,26 @@ export default function ListingCard({
             <h3 className="line-clamp-2 text-base font-bold bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-emerald-400 bg-clip-text text-transparent leading-tight">
               {title}
             </h3>
-            <p className="line-clamp-2 text-sm text-neutral-400 leading-relaxed">{description}</p>
+            
+            <div className="flex flex-wrap gap-1.5 pb-1">
+              {isGirlsId && (
+                <span className="inline-flex items-center rounded-full bg-pink-100 border border-pink-200 px-2 py-0.5 text-[10px] font-semibold text-pink-600">
+                  Girls ID
+                </span>
+              )}
+              {!!collectorLevel && (
+                <span className="inline-flex items-center rounded-full bg-amber-100 border border-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                  {collectorLevel} Collector
+                </span>
+              )}
+            </div>
+
+            <p className="line-clamp-2 text-sm text-slate-500 leading-relaxed">{description}</p>
           </div>
 
           {/* Seller info */}
-          <div className="flex items-center gap-3 pt-2 border-t border-neutral-800/50">
-            <Avatar className="h-8 w-8 ring-2 ring-neutral-700">
+          <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+            <Avatar className="h-8 w-8 ring-2 ring-slate-100">
               <AvatarImage
                 src={sellerAvatar || "/placeholder.svg?height=64&width=64&query=avatar"}
                 alt={sellerName ? sellerName + " avatar" : "Seller avatar"}
@@ -114,7 +132,7 @@ export default function ListingCard({
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-neutral-300 truncate">{sellerName}</span>
+                <span className="text-sm font-semibold text-slate-700 truncate">{sellerName}</span>
                 {isVerifiedSeller && <div className="h-2 w-2 rounded-full bg-emerald-500" />}
               </div>
               <ReviewStars rating={avg} count={count} size={12} />

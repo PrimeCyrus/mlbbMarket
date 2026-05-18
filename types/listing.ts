@@ -1,5 +1,3 @@
-import type { Timestamp } from "firebase/firestore"
-
 export type ListingStatus = "active" | "sold"
 
 export type Listing = {
@@ -9,8 +7,10 @@ export type Listing = {
   price: number
   imageUrls: string[] // primary image is imageUrls[0]
   userId: string
+  isGirlsId?: boolean
+  collectorLevel?: string
   status?: ListingStatus
-  createdAt?: Timestamp | null
-  updatedAt?: Timestamp | null
-  soldAt?: Timestamp | null
+  createdAt?: string | null
+  updatedAt?: string | null
+  soldAt?: string | null
 }

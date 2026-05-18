@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Star } from "lucide-react"
 import { useAuth } from "@/components/auth-provider"
-import { ensureFirebaseApp, firebaseEnabled } from "@/lib/firebase"
-import { doc, setDoc, getFirestore, serverTimestamp } from "firebase/firestore"
+import { supabase, supabaseEnabled } from "@/lib/supabase"
 
 type Props = {
   open: boolean
@@ -23,23 +22,23 @@ export default function ReviewDialog({ open, onOpenChange, sellerId, sellerName 
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async () => {
-    if (!user || !firebaseEnabled) return
+    if (!user || !supabaseEnabled) return
 
     setSubmitting(true)
     try {
-      const app = ensureFirebaseApp()
-      const db = getFirestore(app)
-      const reviewId = `${sellerId}_${user.uid}`
+      const reviewId = `${sellerId}_${user.id}`
 
-      await setDoc(doc(db, "reviews", reviewId), {
-        sellerId,
-        reviewerId: user.uid,
-        reviewerName: user.displayName || user.email || "Anonymous",
+      // Upsert into reviews table
+      const { error } = await supabase.from('reviews').upsert({
+        id: reviewId,
+        seller_id: sellerId,
+        reviewer_id: user.id,
         rating,
         comment: comment.trim(),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        created_at: new Date().toISOString()
       })
+
+      if (error) throw error
 
       onOpenChange(false)
       setComment("")

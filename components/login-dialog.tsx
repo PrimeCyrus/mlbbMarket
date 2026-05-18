@@ -1,59 +1,43 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { FcGoogle } from "react-icons/fc"
-import { signInWithGooglePopup, firebaseEnabled } from "@/lib/firebase"
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useAuth } from "@/components/auth-provider"
+import { supabaseEnabled } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 
 export default function LoginDialog() {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const { signIn } = useAuth()
   const { toast } = useToast()
 
-  const handleGoogle = async () => {
-    if (!firebaseEnabled) {
+  const handleGoogleLogin = async () => {
+    if (!supabaseEnabled) {
       toast({
-        title: "Firebase not configured",
-        description: "Add NEXT_PUBLIC_FIREBASE_* env vars.",
         variant: "destructive",
+        title: "Supabase not configured",
+        description: "Add NEXT_PUBLIC_SUPABASE_* env vars.",
       })
       return
     }
     try {
-      setLoading(true)
-      await signInWithGooglePopup()
-      setOpen(false)
+      await signIn()
     } catch (e: any) {
-      toast({ title: "Sign-in failed", description: e?.message || "Try again", variant: "destructive" })
-    } finally {
-      setLoading(false)
+      toast({ variant: "destructive", title: "Sign-in failed", description: e.message })
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" className="border-neutral-800 bg-neutral-950 text-neutral-200 hover:bg-neutral-900">
+        <Button size="sm" variant="secondary" className="text-xs">
           Sign in
         </Button>
       </DialogTrigger>
-      <DialogContent className="border-neutral-800 bg-neutral-950 text-neutral-200">
-        <DialogHeader>
-          <DialogTitle className="text-lg">Sign in to MLBB Market</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col gap-3">
-          <Button
-            onClick={handleGoogle}
-            disabled={loading}
-            className="flex items-center justify-center gap-2 bg-white text-black hover:bg-white/90"
-          >
-            <FcGoogle className="h-5 w-5" />
-            {loading ? "Signing in..." : "Continue with Google"}
-          </Button>
-          <p className="text-xs text-neutral-400">We only use your name and profile photo to show avatars.</p>
-        </div>
+      <DialogContent className="max-w-xs border-neutral-800 bg-neutral-950 text-neutral-100">
+        <DialogTitle className="text-center">Sign in</DialogTitle>
+        <Button onClick={handleGoogleLogin} className="w-full">
+          Continue with Google
+        </Button>
       </DialogContent>
     </Dialog>
   )

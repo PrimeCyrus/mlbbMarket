@@ -3,22 +3,15 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { onAuthStateChanged, type User } from "firebase/auth"
-import { doc, getDoc, onSnapshot, type Unsubscribe } from "firebase/firestore"
-import {
-  ensureFirebaseApp,
-  firebaseEnabled,
-  getFirebaseAuth,
-  getFirebaseDb,
-  seedOrUpdateUserProfile,
-  signOutFirebase,
-} from "@/lib/firebase"
+import { supabase, supabaseEnabled } from "@/lib/supabase"
 import type { UserProfile } from "@/types/user"
+import type { User, Session } from "@supabase/supabase-js"
 
 type AuthContextShape = {
   user: User | null
   profile: UserProfile | null
   loading: boolean
+  signIn: () => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -27,8 +20,9 @@ const AuthContext = createContext<AuthContextShape>({
   user: null,
   profile: null,
   loading: true,
-  signOut: async () => {},
-  refreshProfile: async () => {},
+  signIn: async () => { },
+  signOut: async () => { },
+  refreshProfile: async () => { },
 })
 
 export function useAuth() {
@@ -41,54 +35,137 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!firebaseEnabled) {
+    if (!supabaseEnabled) {
       setLoading(false)
       return
     }
-    ensureFirebaseApp()
-    const auth = getFirebaseAuth()
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u)
-      if (u) {
-        // Seed or update profile with displayName/photoURL for avatars
-        await seedOrUpdateUserProfile({
-          uid: u.uid,
-          email: u.email,
-          displayName: u.displayName,
-          photoURL: u.photoURL,
-        })
-        // Subscribe to user doc for real-time role/status/avatar changes
-        const db = getFirebaseDb()
-        const ref = doc(db, "users", u.uid)
-        let unsubUser: Unsubscribe | null = null
-        unsubUser = onSnapshot(ref, (snap) => {
-          const data = snap.data() as UserProfile | undefined
-          if (data) setProfile({ ...data, uid: u.uid })
-          setLoading(false)
-        })
-        return () => {
-          unsubUser?.()
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user)
+        syncUserToSupabase(session.user)
+        fetchProfile(session.user.id)
+      }
+      setLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          setUser(session.user)
+          await syncUserToSupabase(session.user)
+          await fetchProfile(session.user.id)
+        } else {
+          setUser(null)
+          setProfile(null)
         }
-      } else {
-        setProfile(null)
         setLoading(false)
       }
-    })
-    return () => unsub()
+    )
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
+
+  // Subscribe to profile changes
+  useEffect(() => {
+    if (!supabaseEnabled || !user) return
+
+    // Remove any stale channel with this name before subscribing (fixes StrictMode double-mount)
+    const channelName = `user-${user.id}`
+    const existing = supabase.getChannels().find(c => c.topic === `realtime:${channelName}`)
+    if (existing) supabase.removeChannel(existing)
+
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users', filter: `uid=eq.${user.id}` },
+        (payload) => {
+          if (payload.new) {
+            setProfile(mapDbToProfile(payload.new))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user])
+
+  const mapDbToProfile = (data: any): UserProfile => ({
+    uid: data.uid,
+    email: data.email,
+    displayName: data.display_name,
+    fullName: data.full_name,
+    photoURL: data.photo_url,
+    role: data.role,
+    sellerStatus: data.seller_status,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  })
+
+  const fetchProfile = async (uid: string) => {
+    const { data } = await supabase.from('users').select('*').eq('uid', uid).single()
+    if (data) setProfile(mapDbToProfile(data))
+  }
+
+  const syncUserToSupabase = async (u: User) => {
+    const base = {
+      email: u.email || "",
+      display_name: u.user_metadata?.full_name || u.user_metadata?.name || "",
+      photo_url: u.user_metadata?.avatar_url || u.user_metadata?.picture || "",
+      updated_at: new Date().toISOString(),
+    }
+
+    // Check if exists
+    const { data: existing } = await supabase.from('users').select('uid').eq('uid', u.id).single()
+
+    if (!existing) {
+      await supabase.from('users').insert({
+        uid: u.id,
+        full_name: u.user_metadata?.full_name || u.user_metadata?.name || "",
+        role: "user",
+        seller_status: "not_applied",
+        created_at: new Date().toISOString(),
+        ...base
+      })
+    } else {
+      await supabase.from('users').update(base).eq('uid', u.id)
+    }
+  }
+
+  const signIn = async () => {
+    if (!supabaseEnabled) return
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined
+      }
+    })
+  }
+
+  const signOutUser = async () => {
+    if (!supabaseEnabled) return
+    await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
+  }
 
   const value = useMemo(
     () => ({
       user,
       profile,
       loading,
-      signOut: signOutFirebase,
+      signIn,
+      signOut: signOutUser,
       refreshProfile: async () => {
-        if (!user || !firebaseEnabled) return
-        const db = getFirebaseDb()
-        const ref = doc(db, "users", user.uid)
-        const snap = await getDoc(ref)
-        if (snap.exists()) setProfile(snap.data() as UserProfile)
+        if (!user) return
+        await fetchProfile(user.id)
       },
     }),
     [user, profile, loading],
