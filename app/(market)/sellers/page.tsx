@@ -43,34 +43,7 @@ export default function SellersDirectoryPage() {
     }
   }, [])
 
-  const demo = useMemo<UserProfile[]>(
-    () => [
-      {
-        uid: "demo-seller-1",
-        fullName: "Aether Prime",
-        email: "demo@mlbb.example",
-        role: "seller",
-        sellerStatus: "approved",
-      } as any,
-      {
-        uid: "demo-seller-2",
-        fullName: "Nova Edge",
-        email: "demo2@mlbb.example",
-        role: "seller",
-        sellerStatus: "approved",
-      } as any,
-      {
-        uid: "demo-seller-3",
-        fullName: "Zenith Rush",
-        email: "demo3@mlbb.example",
-        role: "seller",
-        sellerStatus: "approved",
-      } as any,
-    ],
-    [],
-  )
-
-  const data = supabaseEnabled ? sellers : demo
+  const data = sellers
 
   return (
     <div className="space-y-6">
@@ -124,7 +97,7 @@ export default function SellersDirectoryPage() {
         </section>
       ) : (
         <div className="grid place-items-center rounded-xl border border-slate-200 bg-slate-50 p-10 text-sm text-slate-500 shadow-inner">
-          No verified dealers yet.
+          No Verified Dealers available
         </div>
       )}
     </div>
