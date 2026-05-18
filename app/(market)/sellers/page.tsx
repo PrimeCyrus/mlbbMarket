@@ -21,7 +21,18 @@ export default function SellersDirectoryPage() {
     const fetchSellers = async () => {
       const { data } = await supabase.from('users').select('*').eq('seller_status', 'approved')
       if (data) {
-        setSellers(data as UserProfile[])
+        const mapped = data.map((item: any) => ({
+          uid: item.uid,
+          email: item.email,
+          displayName: item.display_name,
+          fullName: item.full_name,
+          photoURL: item.photo_url,
+          role: item.role,
+          sellerStatus: item.seller_status,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+        } as UserProfile))
+        setSellers(mapped)
       }
       setLoading(false)
     }
@@ -77,14 +88,15 @@ export default function SellersDirectoryPage() {
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 ring-2 ring-slate-100 shadow-inner">
                   <AvatarImage
-                    src={"/placeholder.svg?height=96&width=96&query=cyberpunk%20avatar"}
+                    src={s.photoURL || "/placeholder.svg?height=96&width=96&query=cyberpunk%20avatar"}
                     alt={s.fullName ? s.fullName + " avatar" : "Dealer avatar"}
                   />
                   <AvatarFallback className="bg-gradient-to-br from-cyan-100 to-cyan-200 text-cyan-800 font-semibold">{initials(s.fullName)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-800 group-hover:text-cyan-600 transition-colors">{s.fullName || s.email || "Dealer"}</p>
-                  <p className="truncate text-xs text-slate-400">{s.email}</p>
+                  <p className="truncate text-sm font-semibold text-slate-800 group-hover:text-cyan-600 transition-colors">
+                    {s.fullName || s.displayName || s.email?.split('@')[0] || "Dealer"}
+                  </p>
                 </div>
               </div>
               <div className="mt-3">
