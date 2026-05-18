@@ -143,8 +143,8 @@ export default function Page() {
     return sorted
   }, [activeOnly, q, range, sort, filterGirlsId, filterCollector])
 
-  const canPost = !!profile && (profile.role === "admin" || profile.sellerStatus === "approved")
-  const canApply = !!user && !!profile && profile.sellerStatus !== "approved"
+  const canPost = !!user
+  const canApply = false
 
   return (
     <div className="space-y-12">

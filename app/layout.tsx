@@ -4,8 +4,8 @@ import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
+  title: 'MLBB Trade Hub',
+  description: 'The premier wholesale B2B marketplace for MLBB account dealers.',
   generator: 'v0.dev',
 }
 

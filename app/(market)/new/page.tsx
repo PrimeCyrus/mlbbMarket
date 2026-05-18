@@ -16,10 +16,7 @@ export default function NewListingPage() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [applyOpen, setApplyOpen] = useState(false)
 
-  const canPost = useMemo(
-    () => !!profile && (profile.role === "admin" || profile.sellerStatus === "approved"),
-    [profile],
-  )
+  const canPost = !!user
 
   if (!supabaseEnabled) {
     return (

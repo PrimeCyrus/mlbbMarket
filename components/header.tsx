@@ -30,11 +30,7 @@ function HeaderInner() {
   const [wishlistOpen, setWishlistOpen] = useState(false)
   const { user, profile, loading, signOut } = useAuth()
   const { count } = useWishlist()
-  const canPost = useMemo(() => {
-    const role = profile?.role
-    const status = profile?.sellerStatus
-    return role === "admin" || status === "approved"
-  }, [profile])
+  const canPost = !!user
 
   // Notifications (recent conversations for buyer or seller)
   type Conversation = {
@@ -149,14 +145,14 @@ function HeaderInner() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-4">
         <Link
           href="/"
-          className="font-semibold tracking-tight bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-emerald-400 bg-clip-text text-transparent"
+          className="font-bold tracking-tight bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-emerald-500 bg-clip-text text-transparent"
         >
-          MLBB Market
+          MLBB Trade Hub
         </Link>
 
         <nav className="flex items-center gap-2">
-          <Link href="/sellers" className="text-xs font-medium text-slate-600 hover:text-cyan-600">
-            Verified Sellers
+          <Link href="/sellers" className="text-xs font-semibold text-slate-600 hover:text-cyan-600 transition-colors">
+            Verified Dealers
           </Link>
           {/* Notifications */}
           {user && (

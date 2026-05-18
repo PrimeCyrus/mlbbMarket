@@ -5,8 +5,8 @@ import Header from "@/components/header"
 import AuthProvider from "@/components/auth-provider"
 
 export const metadata = {
-  title: "MLBB Account Marketplace",
-  description: "Buy & sell MLBB accounts. Fast, sleek, and secure.",
+  title: "MLBB Trade Hub — Premium MLBB Account Marketplace",
+  description: "The premier wholesale B2B marketplace for MLBB account dealers. Fast, sleek, and secure.",
 }
 
 export default function MarketLayout({ children }: { children: React.ReactNode }) {

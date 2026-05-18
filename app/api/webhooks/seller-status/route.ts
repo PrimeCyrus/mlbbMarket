@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     const { subject, text, html } = renderSellerStatusEmail(next as any, { fullName })
 
     await resend.emails.send({
-      from: process.env.EMAIL_FROM || "MLBB Market <noreply@mlbb.example.com>",
+      from: process.env.EMAIL_FROM || "MLBB Trade Hub <noreply@mlbb.example.com>",
       to: email,
       subject,
       text,

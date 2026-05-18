@@ -75,21 +75,21 @@ export default function SellersDirectoryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-balance bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-emerald-400 bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
-          Verified Sellers
+        <h1 className="text-balance bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-emerald-500 bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl">
+          Verified Dealers
         </h1>
-        <p className="mt-1 max-w-prose text-sm text-neutral-400">Browse all verified sellers on MLBB Market.</p>
+        <p className="mt-1 max-w-prose text-sm text-slate-500 font-medium">Browse all verified dealers on MLBB Trade Hub.</p>
       </div>
 
       {loading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-neutral-800 bg-neutral-950/60 p-4">
+            <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 animate-pulse rounded-full bg-neutral-800" />
-                <div className="h-4 w-1/2 animate-pulse rounded bg-neutral-800" />
+                <div className="h-10 w-10 animate-pulse rounded-full bg-slate-100" />
+                <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
               </div>
-              <div className="mt-3 h-4 w-28 animate-pulse rounded bg-neutral-800" />
+              <div className="mt-3 h-4 w-28 animate-pulse rounded bg-slate-100" />
             </div>
           ))}
         </div>
@@ -99,32 +99,32 @@ export default function SellersDirectoryPage() {
             <Link
               key={s.uid}
               href={`/seller/${s.uid}`}
-              className="group rounded-xl border border-neutral-800 bg-neutral-950/60 p-4 ring-1 ring-transparent transition hover:ring-cyan-500/30"
+              className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition duration-200 ring-1 ring-transparent hover:border-cyan-200"
             >
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 ring-2 ring-slate-100 shadow-inner">
                   <AvatarImage
                     src={"/placeholder.svg?height=96&width=96&query=cyberpunk%20avatar"}
-                    alt={s.fullName ? s.fullName + " avatar" : "Seller avatar"}
+                    alt={s.fullName ? s.fullName + " avatar" : "Dealer avatar"}
                   />
-                  <AvatarFallback>{initials(s.fullName)}</AvatarFallback>
+                  <AvatarFallback className="bg-gradient-to-br from-cyan-100 to-cyan-200 text-cyan-800 font-semibold">{initials(s.fullName)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-neutral-100">{s.fullName || s.email || "Seller"}</p>
-                  <p className="truncate text-xs text-neutral-400">{s.email}</p>
+                  <p className="truncate text-sm font-semibold text-slate-800 group-hover:text-cyan-600 transition-colors">{s.fullName || s.email || "Dealer"}</p>
+                  <p className="truncate text-xs text-slate-400">{s.email}</p>
                 </div>
               </div>
               <div className="mt-3">
-                <Badge className="rounded border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-300">
-                  Verified seller
+                <Badge className="rounded border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700 font-semibold shadow-none">
+                  Verified Dealer
                 </Badge>
               </div>
             </Link>
           ))}
         </section>
       ) : (
-        <div className="grid place-items-center rounded-xl border border-neutral-800 bg-neutral-950/60 p-10 text-sm text-neutral-400">
-          No verified sellers yet.
+        <div className="grid place-items-center rounded-xl border border-slate-200 bg-slate-50 p-10 text-sm text-slate-500 shadow-inner">
+          No verified dealers yet.
         </div>
       )}
     </div>
