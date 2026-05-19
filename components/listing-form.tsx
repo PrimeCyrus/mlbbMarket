@@ -11,8 +11,6 @@ import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/components/auth-provider"
 import { useRouter } from "next/navigation"
 
-const MAX_IMAGE_BYTES = 200 * 1024 // 200 KB
-
 async function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   const objectUrl = URL.createObjectURL(file)
   try {
@@ -40,40 +38,24 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
   })
 }
 
-async function compressImageToMaxBytes(img: HTMLImageElement, maxBytes: number = MAX_IMAGE_BYTES): Promise<Blob> {
-  const targetType = "image/jpeg"
-  let scale = Math.min(1, 1920 / (img.width || 1))
-  if (!Number.isFinite(scale) || scale <= 0) scale = 1
-
-  for (let s = scale; s > 0.3; s *= 0.85) {
-    for (let q = 0.8; q >= 0.4; q -= 0.1) {
-      const canvas = document.createElement("canvas")
-      canvas.width = Math.max(1, Math.round((img.width || 1) * s))
-      canvas.height = Math.max(1, Math.round((img.height || 1) * s))
-      const ctx = canvas.getContext("2d")
-      if (!ctx) throw new Error("Canvas is not supported in this environment")
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-      const blob = await canvasToBlob(canvas, targetType, q)
-      if (blob.size <= maxBytes) return blob
-    }
-  }
-
-  const finalCanvas = document.createElement("canvas")
-  const finalScale = 0.3
-  finalCanvas.width = Math.max(1, Math.round((img.width || 1) * finalScale))
-  finalCanvas.height = Math.max(1, Math.round((img.height || 1) * finalScale))
-  const finalCtx = finalCanvas.getContext("2d")
-  if (!finalCtx) throw new Error("Canvas is not supported in this environment")
-  finalCtx.drawImage(img, 0, 0, finalCanvas.width, finalCanvas.height)
-  const finalBlob = await canvasToBlob(finalCanvas, targetType, 0.4)
-  if (finalBlob.size <= maxBytes) return finalBlob
-  throw new Error(`Image is too large even after compression (> ${Math.round(maxBytes / 1024)} KB).`)
-}
-
 async function processFileForUpload(file: File): Promise<Blob> {
   const img = await loadImageFromFile(file)
-  const main = await compressImageToMaxBytes(img, MAX_IMAGE_BYTES)
-  return main
+  
+  const targetWidth = 1080
+  let scale = 1
+  if (img.width > targetWidth) {
+    scale = targetWidth / img.width
+  }
+
+  const canvas = document.createElement("canvas")
+  canvas.width = Math.max(1, Math.round(img.width * scale))
+  canvas.height = Math.max(1, Math.round(img.height * scale))
+  
+  const ctx = canvas.getContext("2d")
+  if (!ctx) throw new Error("Canvas is not supported in this environment")
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+  
+  return await canvasToBlob(canvas, "image/webp", 0.85)
 }
 
 export default function ListingForm() {
@@ -109,12 +91,12 @@ export default function ListingForm() {
         files.map(async (f, idx) => {
           const id = `${Date.now()}_${idx}_${Math.random().toString(36).slice(2)}`
           const compressed = await processFileForUpload(f)
-          const fileName = `${user.id}/${id}_${f.name.replace(/\.[^.]+$/, '')}.jpg`
+          const fileName = `${user.id}/${id}_${f.name.replace(/\.[^.]+$/, '')}.webp`
 
           const { data, error } = await supabase.storage
             .from('listings')
             .upload(fileName, compressed, {
-              contentType: 'image/jpeg',
+              contentType: 'image/webp',
               upsert: false
             })
 
